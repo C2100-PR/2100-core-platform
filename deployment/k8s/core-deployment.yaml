@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: core-platform
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: core-platform
+  template:
+    metadata:
+      labels:
+        app: core-platform
+    spec:
+      containers:
+      - name: core-platform
+        image: gcr.io/api-for-warp-drive/core-platform:latest
+        env:
+        - name: VERTEX_AI_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: platform-secrets
+              key: vertex-ai-endpoint
+        - name: PINECONE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: platform-secrets
+              key: pinecone-api-key
+        - name: DR_LUCY_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: platform-secrets
+              key: dr-lucy-endpoint
