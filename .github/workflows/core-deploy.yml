@@ -1,0 +1,39 @@
+name: Core Platform Deployment
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup GCloud
+      uses: google-github-actions/setup-gcloud@v0
+      with:
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        project_id: api-for-warp-drive
+    
+    - name: Configure Docker
+      run: gcloud auth configure-docker
+    
+    - name: Build and Push
+      run: |
+        docker build -t gcr.io/api-for-warp-drive/core-platform:$GITHUB_SHA .
+        docker push gcr.io/api-for-warp-drive/core-platform:$GITHUB_SHA
+    
+    - name: Deploy to GKE
+      run: |
+        gcloud container clusters get-credentials private-cluster-auto --zone us-west1
+        kubectl apply -f deployment/k8s/
+        
+    - name: Update Dr Lucy Automation
+      run: |
+        curl -X POST -H "Authorization: Bearer ${{ secrets.DR_LUCY_TOKEN }}" \
+             -H "Content-Type: application/json" \
+             https://api.2100.cool/v1/dr-lucy/update-deployment \
+             -d '{"deployment": "core-platform", "version": "'$GITHUB_SHA'"}'
